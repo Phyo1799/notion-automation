@@ -18,7 +18,6 @@ import secrets
 from functools import lru_cache
 import time
 import logging
-from serverless_http import serverless
 
 load_dotenv()
 
@@ -541,9 +540,6 @@ def delete_entry():
             'success': False,
             'error': str(e)
         }), 500
-
-# Add this at the bottom of the file, before the if __name__ == '__main__' block
-handler = serverless(app)
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))
