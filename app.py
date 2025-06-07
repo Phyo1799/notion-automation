@@ -115,10 +115,8 @@ def generate_qr_code(url, timestamp):
 @app.route('/qr')
 @login_required
 def generate_qr():
-    # Generate QR code for the current URL
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-    url = f"http://{local_ip}:8080"
+    # Get the current URL from the request
+    url = request.host_url.rstrip('/')
     
     # Use timestamp to force cache refresh every 5 minutes
     timestamp = int(time.time() / 300)
@@ -191,11 +189,10 @@ def send_sms():
 
 # Configure logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,  # Changed from DEBUG to INFO for production
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('app.log'),
-        logging.StreamHandler()
+        logging.StreamHandler()  # Only use StreamHandler for Vercel
     ]
 )
 logger = logging.getLogger(__name__)
@@ -545,22 +542,5 @@ def delete_entry():
         }), 500
 
 if __name__ == '__main__':
-    try:
-        # Get local IP address
-        hostname = socket.gethostname()
-        local_ip = socket.gethostbyname(hostname)
-        
-        print(f"\nTo access the application from your mobile device:")
-        print(f"1. Make sure your mobile device is connected to the same WiFi network as this computer")
-        print(f"2. Open your mobile browser and go to: http://{local_ip}:8080")
-        print(f"3. Scan the QR code at: http://{local_ip}:8080/qr")
-        print(f"\nIf you can't connect, try these troubleshooting steps:")
-        print(f"1. Check if your mobile device is on the same WiFi network")
-        print(f"2. Try accessing the app from your computer's browser at http://localhost:8080")
-        print(f"3. Make sure no other application is using port 8080")
-        
-        # Run the app without SSL for local development
-        app.run(host='0.0.0.0', port=8080, debug=True)
-    except Exception as e:
-        print(f"\nError starting the application: {str(e)}")
-        print("Please make sure no other application is using port 8080") 
+    port = int(os.getenv('PORT', 8080))
+    app.run(host='0.0.0.0', port=port) 

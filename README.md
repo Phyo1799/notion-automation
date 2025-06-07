@@ -1,51 +1,91 @@
-# SMS to Notion
+# Notion Automation
 
-A web application that allows you to paste SMS messages and automatically add them to your Notion database.
+A Flask application that automates expense tracking in Notion by parsing SMS messages.
 
-## Setup
+## Features
 
-1. Install the required dependencies:
+- SMS message parsing for expense tracking
+- Integration with Notion API
+- User authentication
+- QR code generation for easy access
+- CSV export functionality
+
+## Local Development Setup
+
+1. Clone the repository
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-
-2. Create a `.env` file in the root directory with the following content:
-   ```
-   NOTION_API_KEY=your_notion_api_key_here
-   DATABASE_ID=your_database_id_here
-   ```
-
-3. Run the application:
+4. Copy `.env.example` to `.env` and fill in your values
+5. Run the application:
    ```bash
    python app.py
    ```
 
-4. Open your browser and navigate to:
-   - `http://localhost:8080` to access the application from the same computer.
-   - Use the local WiFi IP address (e.g., `http://<local_ip>:8080`) to access the application from other devices on the same WiFi network.
+## Vercel Deployment
 
-## Usage
+1. Install Vercel CLI:
+   ```bash
+   npm install -g vercel
+   ```
 
-1. Copy your SMS message.
-2. Paste it into the text area on the website.
-3. Click "Add to Notion".
-4. The transaction will be automatically added to your Notion database.
+2. Login to Vercel:
+   ```bash
+   vercel login
+   ```
 
-## Features
+3. Deploy to Vercel:
+   ```bash
+   vercel
+   ```
 
-- Automatically extracts:
-  - Transaction amount (always positive)
-  - Merchant name (extracted from the SMS format)
-  - Transaction date
-- User authentication with secure login/logout functionality.
-- QR code generation for easy access from mobile devices.
-- Integration with Notion API to add transactions directly to your Notion database.
-- Comprehensive error handling and logging for debugging.
-- CSV export functionality to download transaction data.
-- Modern, responsive UI with real-time feedback on success/failure.
-- Testing route for debugging SMS parsing.
+4. Set up environment variables in Vercel:
+   - Go to your project settings in Vercel
+   - Add the following environment variables:
+     - NOTION_API_KEY
+     - DATABASE_ID
+     - SECRET_KEY
+     - ADMIN_EMAIL
+     - ADMIN_PASSWORD
 
-## Troubleshooting
+## Environment Variables
 
-- Ensure your mobile device is connected to the same WiFi network as your computer to access the application via the generated QR code.
-- If you encounter issues, check that no other application is using port 8080.
+- `NOTION_API_KEY`: Your Notion API key
+- `DATABASE_ID`: Your Notion database ID
+- `SECRET_KEY`: Flask secret key for session management
+- `ADMIN_EMAIL`: Admin user email
+- `ADMIN_PASSWORD`: Admin user password
+- `SSL_CERTIFICATE`: (Optional) Path to SSL certificate
+- `SSL_KEY`: (Optional) Path to SSL key
+
+## API Endpoints
+
+- `/`: Home page
+- `/login`: Login page
+- `/logout`: Logout endpoint
+- `/qr`: Generate QR code for the current URL
+- `/send_sms`: Process SMS messages
+- `/export`: Export data to CSV
+- `/test_parse`: Test SMS parsing
+- `/delete_entry`: Delete a Notion entry
+
+## Security Notes
+
+- Always use HTTPS in production
+- Keep your environment variables secure
+- Regularly update dependencies
+- Use strong passwords for admin accounts
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
