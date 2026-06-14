@@ -127,7 +127,7 @@ def generate_qr():
     return send_file(
         io.BytesIO(qr_data),
         mimetype='image/png',
-        cache_timeout=300  # Cache for 5 minutes
+        max_age=300  # Cache for 5 minutes
     )
 
 # Add these routes before the if __name__ == '__main__' block
@@ -297,6 +297,24 @@ def parse_sms(text):
             'account_ids': []
         }
 
+def split_bulk_sms_entries(text):
+    normalized_text = text.replace('\r\n', '\n').strip()
+    if not normalized_text:
+        return []
+
+    starts = [match.start() for match in re.finditer(r'(?im)^\s*Dear\s+', normalized_text)]
+    if not starts:
+        return [normalized_text]
+
+    entries = []
+    for index, start in enumerate(starts):
+        end = starts[index + 1] if index + 1 < len(starts) else len(normalized_text)
+        entry = normalized_text[start:end].strip()
+        if entry:
+            entries.append(entry)
+
+    return entries
+
 def add_to_notion(data):
     logger.debug(f"Adding to Notion: {data}")
     
@@ -407,6 +425,75 @@ def process_sms():
             
     except Exception as e:
         logger.error(f"Error processing message: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/bulk_process', methods=['POST'])
+@login_required
+def bulk_process_sms():
+    try:
+        bulk_text = request.json.get('bulk_text', '')
+        messages = split_bulk_sms_entries(bulk_text)
+
+        if not messages:
+            return jsonify({
+                'success': False,
+                'error': 'No messages provided'
+            }), 400
+
+        results = []
+        success_count = 0
+        failure_count = 0
+
+        for message in messages:
+            parsed_data = parse_sms(message)
+            if all(parsed_data.values()):
+                try:
+                    result = add_to_notion(parsed_data)
+                    success_count += 1
+                    results.append({
+                        'success': True,
+                        'message': message,
+                        'data': {
+                            'merchant': parsed_data['merchant'],
+                            'amount': parsed_data['amount'],
+                            'date': parsed_data['date'],
+                            'accounts': [get_account_name(acc_id) for acc_id in parsed_data['account_ids']],
+                            'page_id': result.get('id')
+                        }
+                    })
+                except Exception as e:
+                    failure_count += 1
+                    logger.error(f"Error adding bulk entry to Notion: {str(e)}", exc_info=True)
+                    results.append({
+                        'success': False,
+                        'message': message,
+                        'error': f'Failed to add to Notion: {str(e)}',
+                        'parsed_data': parsed_data
+                    })
+            else:
+                failure_count += 1
+                missing_fields = [k for k, v in parsed_data.items() if v is None or v == []]
+                results.append({
+                    'success': False,
+                    'message': message,
+                    'error': 'Could not parse all required information',
+                    'missing_fields': missing_fields,
+                    'parsed_data': parsed_data
+                })
+
+        return jsonify({
+            'success': failure_count == 0,
+            'total': len(messages),
+            'success_count': success_count,
+            'failure_count': failure_count,
+            'results': results
+        })
+
+    except Exception as e:
+        logger.error(f"Error processing bulk messages: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -543,4 +630,4 @@ def delete_entry():
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8080))
-    app.run(host='0.0.0.0', port=port) 
+    app.run(host='0.0.0.0', port=port)
